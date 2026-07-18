@@ -1,53 +1,121 @@
 import { Router, Request, Response } from "express";
-import verifyToken from "../middleware/verifyToken"; // পাথ ঠিক রেখো
+import { db } from "../config/db";
+import verifyToken from "../middleware/verifyToken";
 
 const router = Router();
 
-// গোল ক্রিয়েট করার রাউট (POST /goals)
+// Create Goal
 router.post("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    // TypeScript-কে জানানোর জন্য যে req-এর ভেতর user আছে (as any) ব্যবহার করা হয়েছে
     const activeUser = (req as any).user;
     const bodyData = req.body;
 
-    console.log("Authenticated User State:", activeUser);
-    console.log("Received Action Payload:", bodyData);
-    
-    // এখানে তোমার ডাটাবেজে গোল সেভ করার মঙ্গুস লজিক লিখবে
-    
-    return res.status(200).json({
-      success: true, // ফ্রন্টএন্ডে তোমার কোড 'data.success' চেক করে, তাই এটা মাস্ট
-      message: "Goal processed successfully within secure tunnel boundary.",
-      meta: {
-        userId: activeUser?.sub || activeUser?.id,
-        email: activeUser?.email
-      },
-      receivedData: bodyData
+    const goal = {
+      ...bodyData,
+      userEmail: activeUser?.email,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await db
+      .collection("careerGoals")
+      .insertOne(goal);
+
+    return res.status(201).json({
+      success: true,
+      message: "Goal created successfully.",
+      insertedId: result.insertedId,
     });
-    
-  } catch (err) {
+  } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       success: false,
-      message: "Internal core cluster operations execution failure.",
+      message: "Failed to create goal.",
+    });
+  }
+});
+
+// Get All Goals (Public)
+// Get All Goals (Public) - with search, filter, sort, pagination
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const {
+      search = "",
+      priority = "",
+      targetRole = "",
+      sort = "newest",
+      page = "1",
+      limit = "8",
+    } = req.query as Record<string, string>;
+
+    const query: any = {};
+
+    // Search (title or targetRole)
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { targetRole: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Filter field 1: priority
+    if (priority) {
+      query.priority = priority;
+    }
+
+    // Filter field 2: targetRole
+    if (targetRole) {
+      query.targetRole = { $regex: targetRole, $options: "i" };
+    }
+
+    // Sort
+    let sortQuery: any = { createdAt: -1 }; // newest (default)
+    if (sort === "oldest") sortQuery = { createdAt: 1 };
+    if (sort === "priority") sortQuery = { priority: -1 };
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 8;
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await db.collection("careerGoals").countDocuments(query);
+
+    const goals = await db
+      .collection("careerGoals")
+      .find(query)
+      .sort(sortQuery)
+      .skip(skip)
+      .limit(limitNum)
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      data: goals,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch goals.",
     });
   }
 });
 
 // Get Single Goal
 router.get("/:id", async (req: Request, res: Response) => {
-  // পরে করবে
   res.send("Get single goal");
 });
 
 // Update Goal
 router.patch("/:id", async (req: Request, res: Response) => {
-  // পরে করবে
   res.send("Update goal");
 });
 
 // Delete Goal
 router.delete("/:id", async (req: Request, res: Response) => {
-  // পরে করবে
   res.send("Delete goal");
 });
 
