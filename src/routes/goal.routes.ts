@@ -1,25 +1,32 @@
-import { Router, Request, Response } from "express";
+import { Router, Response, Request } from "express";
+import { ObjectId } from "mongodb";
 import { db } from "../config/db";
-import verifyToken from "../middleware/verifyToken";
+import { verifyToken } from "../middleware/verifyToken";
 
 const router = Router();
 
-// Create Goal
+// Create Goal (Protected)
 router.post("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const activeUser = (req as any).user;
+    const activeUser = req.user;
+
+    if (!activeUser?.email) {
+      return res.status(401).json({
+        success: false,
+        message: "User information missing",
+      });
+    }
+
     const bodyData = req.body;
 
     const goal = {
       ...bodyData,
-      userEmail: activeUser?.email,
+      userEmail: activeUser.email,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const result = await db
-      .collection("careerGoals")
-      .insertOne(goal);
+    const result = await db.collection("careerGoals").insertOne(goal);
 
     return res.status(201).json({
       success: true,
@@ -27,7 +34,7 @@ router.post("/", verifyToken, async (req: Request, res: Response) => {
       insertedId: result.insertedId,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create Goal Error:", error);
 
     return res.status(500).json({
       success: false,
@@ -36,87 +43,215 @@ router.post("/", verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// Get All Goals (Public)
-// Get All Goals (Public) - with search, filter, sort, pagination
+// Get All Goals
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const {
-      search = "",
-      priority = "",
-      targetRole = "",
-      sort = "newest",
-      page = "1",
-      limit = "8",
-    } = req.query as Record<string, string>;
-
-    const query: any = {};
-
-    // Search (title or targetRole)
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { targetRole: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    // Filter field 1: priority
-    if (priority) {
-      query.priority = priority;
-    }
-
-    // Filter field 2: targetRole
-    if (targetRole) {
-      query.targetRole = { $regex: targetRole, $options: "i" };
-    }
-
-    // Sort
-    let sortQuery: any = { createdAt: -1 }; // newest (default)
-    if (sort === "oldest") sortQuery = { createdAt: 1 };
-    if (sort === "priority") sortQuery = { priority: -1 };
-
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 8;
-    const skip = (pageNum - 1) * limitNum;
-
-    const total = await db.collection("careerGoals").countDocuments(query);
-
     const goals = await db
       .collection("careerGoals")
-      .find(query)
-      .sort(sortQuery)
-      .skip(skip)
-      .limit(limitNum)
+      .find({})
+      .sort({ createdAt: -1 })
       .toArray();
+
 
     return res.status(200).json({
       success: true,
-      total,
-      page: pageNum,
-      totalPages: Math.ceil(total / limitNum),
+      message: "Goals fetched successfully",
+      total: goals.length,
       data: goals,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("Get Goals Error:", error);
+
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch goals.",
+      message: "Failed to fetch goals",
     });
   }
 });
 
 // Get Single Goal
 router.get("/:id", async (req: Request, res: Response) => {
-  res.send("Get single goal");
+  try {
+    const id = req.params.id as string;
+
+    // MongoDB ObjectId validation
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Goal ID",
+      });
+    }
+
+
+    const goal = await db.collection("careerGoals").findOne({
+      _id: new ObjectId(id),
+    });
+
+
+    if (!goal) {
+      return res.status(404).json({
+        success: false,
+        message: "Goal not found",
+      });
+    }
+
+
+    return res.status(200).json({
+      success: true,
+      message: "Goal fetched successfully",
+      data: goal,
+    });
+
+
+  } catch (error) {
+    console.error("Single Goal Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch goal",
+    });
+  }
 });
 
-// Update Goal
-router.patch("/:id", async (req: Request, res: Response) => {
-  res.send("Update goal");
-});
 
-// Delete Goal
-router.delete("/:id", async (req: Request, res: Response) => {
-  res.send("Delete goal");
-});
+
+// // Update Goal (Protected)
+// router.patch("/:id", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const id = req.params.id;
+//     const activeUser = req.user;
+
+//     if (!activeUser?.email) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized",
+//       });
+//     }
+
+//     if (!ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid Goal ID format.",
+//       });
+//     }
+
+//     const goal = await db.collection("careerGoals").findOne({
+//       _id: new ObjectId(id),
+//     });
+
+//     if (!goal) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Goal not found.",
+//       });
+//     }
+
+
+//     if (goal.userEmail !== activeUser.email) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "You are not allowed to update this goal.",
+//       });
+//     }
+
+
+//     const result = await db.collection("careerGoals").updateOne(
+//       {
+//         _id: new ObjectId(id),
+//       },
+//       {
+//         $set: {
+//           ...req.body,
+//           updatedAt: new Date(),
+//         },
+//       }
+//     );
+
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Goal updated successfully.",
+//       modifiedCount: result.modifiedCount,
+//     });
+
+
+//   } catch (error) {
+//     console.error("Update Goal Error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to update goal.",
+//     });
+//   }
+// });
+
+
+// // Delete Goal (Protected)
+// router.delete("/:id", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const id = req.params.id;
+//     const activeUser = req.user;
+
+
+//     if (!activeUser?.email) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized",
+//       });
+//     }
+
+
+//     if (!ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid Goal ID format.",
+//       });
+//     }
+
+
+//     const goal = await db.collection("careerGoals").findOne({
+//       _id: new ObjectId(id),
+//     });
+
+
+//     if (!goal) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Goal not found.",
+//       });
+//     }
+
+
+//     if (goal.userEmail !== activeUser.email) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "You are not allowed to delete this goal.",
+//       });
+//     }
+
+
+//     const result = await db.collection("careerGoals").deleteOne({
+//       _id: new ObjectId(id),
+//     });
+
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Goal deleted successfully.",
+//       deletedCount: result.deletedCount,
+//     });
+
+
+//   } catch (error) {
+//     console.error("Delete Goal Error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to delete goal.",
+//     });
+//   }
+// });
+
 
 export default router;

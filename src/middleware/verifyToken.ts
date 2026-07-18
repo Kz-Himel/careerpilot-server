@@ -1,34 +1,32 @@
-import { NextFunction, Request, Response } from "express";
-import { createRemoteJWKSet, jwtVerify } from "jose-cjs";
+import { Request, Response, NextFunction } from "express";
+import { jwtVerify } from "jose-cjs";
+import { JWKS } from "../utils/jwks.js";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
-const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
-);
-
-const verifyToken = async (
+export const verifyToken = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    const authorization = req.headers.authorization;
 
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({
+    if (!authorization?.startsWith("Bearer ")) {
+      res.status(401).json({
         success: false,
         message: "Unauthorized Access",
       });
+      return;
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authorization.split(" ")[1];
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: "Token Missing",
+      });
+      return;
+    }
 
     const { payload } = await jwtVerify(token, JWKS);
 
@@ -36,11 +34,11 @@ const verifyToken = async (
 
     next();
   } catch (error) {
-    return res.status(401).json({
+    console.error("JWT Verify Error:", error);
+
+    res.status(401).json({
       success: false,
       message: "Invalid or Expired Token",
     });
   }
 };
-
-export default verifyToken;
