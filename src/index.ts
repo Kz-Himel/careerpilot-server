@@ -1,14 +1,24 @@
-import dotenv from "dotenv";
-dotenv.config();
+import app from "./app"; 
+import { connectDB } from "./config/db";
+import goalRoutes from "./routes/goal.routes"; 
+app.get("/", (_req, res) => {
+   res.send("CareerPilot AI Server Running... 🚀");
+});
 
-import app from "./app";
+app.use("/goals", goalRoutes); 
 
 const PORT = process.env.PORT || 5000;
 
-app.get("/", (_, res) => {
-  res.send("CareerPilot Server is Running 🚀");
-});
+async function startServer() {
+   try {
+     await connectDB(); 
 
-app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
-});
+     app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+     });
+   } catch (error) {
+     console.error("Failed to start server:", error);
+   }
+}
+
+startServer();

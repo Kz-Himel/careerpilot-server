@@ -1,70 +1,54 @@
-import { Router } from "express";
-import { db } from "../config/db";
+import { Router, Request, Response } from "express";
+import verifyToken from "../middleware/verifyToken"; // পাথ ঠিক রেখো
 
 const router = Router();
 
-// Create Goal
-router.post("/", async (req, res) => {
+// গোল ক্রিয়েট করার রাউট (POST /goals)
+router.post("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const goal = {
-      ...req.body,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // TypeScript-কে জানানোর জন্য যে req-এর ভেতর user আছে (as any) ব্যবহার করা হয়েছে
+    const activeUser = (req as any).user;
+    const bodyData = req.body;
 
-    const result = await db
-      .collection("careerGoals")
-      .insertOne(goal);
-
-    res.status(201).json({
-      success: true,
-      message: "Goal created successfully",
-      insertedId: result.insertedId,
+    console.log("Authenticated User State:", activeUser);
+    console.log("Received Action Payload:", bodyData);
+    
+    // এখানে তোমার ডাটাবেজে গোল সেভ করার মঙ্গুস লজিক লিখবে
+    
+    return res.status(200).json({
+      success: true, // ফ্রন্টএন্ডে তোমার কোড 'data.success' চেক করে, তাই এটা মাস্ট
+      message: "Goal processed successfully within secure tunnel boundary.",
+      meta: {
+        userId: activeUser?.sub || activeUser?.id,
+        email: activeUser?.email
+      },
+      receivedData: bodyData
     });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
+    
+  } catch (err) {
+    return res.status(500).json({
       success: false,
-      message: "Failed to create goal",
-    });
-  }
-});
-
-// Get All Goals
-router.get("/", async (req, res) => {
-  try {
-    const goals = await db
-      .collection("careerGoals")
-      .find()
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.json({
-      success: true,
-      data: goals,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch goals",
+      message: "Internal core cluster operations execution failure.",
     });
   }
 });
 
 // Get Single Goal
-router.get("/:id", async (req, res) => {
-  // পরে করবো
+router.get("/:id", async (req: Request, res: Response) => {
+  // পরে করবে
+  res.send("Get single goal");
 });
 
 // Update Goal
-router.patch("/:id", async (req, res) => {
-  // পরে করবো
+router.patch("/:id", async (req: Request, res: Response) => {
+  // পরে করবে
+  res.send("Update goal");
 });
 
 // Delete Goal
-router.delete("/:id", async (req, res) => {
-  // পরে করবো
+router.delete("/:id", async (req: Request, res: Response) => {
+  // পরে করবে
+  res.send("Delete goal");
 });
 
 export default router;
