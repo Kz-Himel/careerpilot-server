@@ -185,71 +185,71 @@ router.patch("/:id", verifyToken, async (req: Request, res: Response) => {
 });
 
 
-// // Delete Goal (Protected)
-// router.delete("/:id", verifyToken, async (req: Request, res: Response) => {
-//   try {
-//     const id = req.params.id;
-//     const activeUser = req.user;
+// Delete Goal (Protected)
+router.delete("/:id", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const activeUser = req.user;
 
 
-//     if (!activeUser?.email) {
-//       return res.status(401).json({
-//         success: false,
-//         message: "Unauthorized",
-//       });
-//     }
+    if (!activeUser?.email) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
 
-//     if (!ObjectId.isValid(id)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Invalid Goal ID format.",
-//       });
-//     }
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Goal ID format.",
+      });
+    }
 
 
-//     const goal = await db.collection("careerGoals").findOne({
-//       _id: new ObjectId(id),
-//     });
+    const goal = await db.collection("careerGoals").findOne({
+      _id: new ObjectId(id),
+    });
 
 
-//     if (!goal) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Goal not found.",
-//       });
-//     }
+    if (!goal) {
+      return res.status(404).json({
+        success: false,
+        message: "Goal not found.",
+      });
+    }
 
 
-//     if (goal.userEmail !== activeUser.email) {
-//       return res.status(403).json({
-//         success: false,
-//         message: "You are not allowed to delete this goal.",
-//       });
-//     }
+    if (goal.userEmail !== activeUser.email) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to delete this goal.",
+      });
+    }
 
 
-//     const result = await db.collection("careerGoals").deleteOne({
-//       _id: new ObjectId(id),
-//     });
+    const result = await db.collection("careerGoals").deleteOne({
+      _id: new ObjectId(id),
+    });
 
 
-//     return res.status(200).json({
-//       success: true,
-//       message: "Goal deleted successfully.",
-//       deletedCount: result.deletedCount,
-//     });
+    return res.status(200).json({
+      success: true,
+      message: "Goal deleted successfully.",
+      deletedCount: result.deletedCount,
+    });
 
 
-//   } catch (error) {
-//     console.error("Delete Goal Error:", error);
+  } catch (error) {
+    console.error("Delete Goal Error:", error);
 
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to delete goal.",
-//     });
-//   }
-// });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete goal.",
+    });
+  }
+});
 
 
 export default router;

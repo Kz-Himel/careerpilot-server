@@ -2,6 +2,7 @@ import app from "./app";
 import { connectDB } from "./config/db";
 import goalRoutes from "./routes/goal.routes";
 import myGoalsRoutes from "./routes/my-goals.routes";
+import chatRoutes from "./routes/chat.routes";
 
 
 app.get("/", (_req, res) => {
@@ -11,6 +12,7 @@ app.get("/", (_req, res) => {
 
 app.use("/goals", myGoalsRoutes);
 app.use("/goals", goalRoutes);
+app.use("/chat", chatRoutes);
 
 
 const PORT = process.env.PORT || 5000;
