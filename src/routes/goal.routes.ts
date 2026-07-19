@@ -70,6 +70,29 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// GET /popular - top 4 goals for home page display
+router.get("/popular", async (req: Request, res: Response) => {
+  try {
+    const goals = await db
+      .collection("careerGoals")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      data: goals,
+    });
+  } catch (error) {
+    console.error("Popular Goals Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch popular goals.",
+    });
+  }
+});
+
 // Get Single Goal
 router.get("/:id", async (req: Request, res: Response) => {
   try {
