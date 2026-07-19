@@ -5,6 +5,7 @@ import myGoalsRoutes from "./routes/my-goals.routes";
 import chatRoutes from "./routes/chat.routes";
 import roadmapRoutes from "./routes/roadmap.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import savedGoalsRoutes from "./routes/savedGoals.routes";
 
 
 app.get("/", (_req, res) => {
@@ -17,6 +18,7 @@ app.use("/goals", goalRoutes);
 app.use("/chat", chatRoutes);
 app.use("/roadmaps", roadmapRoutes);
 app.use("/dashboard", dashboardRoutes);
+app.use("/saved-goals", savedGoalsRoutes);
 
 
 const PORT = process.env.PORT || 5000;

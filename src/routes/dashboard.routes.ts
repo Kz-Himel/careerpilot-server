@@ -11,7 +11,7 @@ router.get("/stats", verifyToken, async (req: Request, res: Response) => {
     const activeUser = (req as any).user;
     const userEmail = activeUser.email;
 
-    const [totalGoals, roadmapsGenerated, chatDoc] = await Promise.all([
+    const [totalGuides, roadmapsGenerated, chatDoc] = await Promise.all([
       db.collection("careerGoals").countDocuments({ userEmail }),
       db.collection("roadmaps").countDocuments({ userEmail }),
       db.collection("chatHistory").findOne({ userEmail }),
@@ -21,7 +21,7 @@ router.get("/stats", verifyToken, async (req: Request, res: Response) => {
       ? Math.ceil(chatDoc.messages.length / 2) // user+assistant pair = 1 exchange
       : 0;
 
-    // "Skills Learned" - count unique skills across saved roadmaps' completed months (simple proxy)
+    // "Skills Learned" - count completed months across saved roadmaps
     const roadmaps = await db.collection("roadmaps").find({ userEmail }).toArray();
     const skillsLearned = roadmaps.reduce((sum, r) => {
       const completedMonths = (r.months ?? []).filter((m: any) => m.status === "completed").length;
@@ -31,7 +31,7 @@ router.get("/stats", verifyToken, async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       data: {
-        totalGoals,
+        totalGuides,
         roadmapsGenerated,
         aiConversations,
         skillsLearned,
@@ -46,22 +46,22 @@ router.get("/stats", verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// GET /progress-overview - monthly progress for chart
+// GET /progress-overview - monthly roadmap progress for chart
 router.get("/progress-overview", verifyToken, async (req: Request, res: Response) => {
   try {
     const activeUser = (req as any).user;
     const userEmail = activeUser.email;
 
-    const goals = await db.collection("careerGoals").find({ userEmail }).toArray();
+    // Progress is now tracked via saved Roadmaps (Goals/Guides no longer have a progress field)
+    const roadmaps = await db.collection("roadmaps").find({ userEmail }).toArray();
 
-    // group by month of dueDate/createdAt, average currentProgress
     const monthMap: Record<string, { total: number; count: number }> = {};
 
-    goals.forEach((goal) => {
-      const date = new Date(goal.createdAt);
+    roadmaps.forEach((roadmap) => {
+      const date = new Date(roadmap.generatedAt);
       const monthLabel = date.toLocaleDateString("en-US", { month: "short" });
       if (!monthMap[monthLabel]) monthMap[monthLabel] = { total: 0, count: 0 };
-      monthMap[monthLabel].total += goal.currentProgress ?? 0;
+      monthMap[monthLabel].total += roadmap.progress ?? 0;
       monthMap[monthLabel].count += 1;
     });
 
