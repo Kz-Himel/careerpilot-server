@@ -1,11 +1,17 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
 const client = new MongoClient(process.env.MONGODB_URI!);
 
-export async function connectDB() {
-  await client.connect();
+let db: Db;
 
-  console.log("MongoDB Connected");
+export async function connectDB() {
+    if (!db) {
+        await client.connect();
+        db = client.db(process.env.DB_NAME);
+        console.log("MongoDB Connected");
+    }
+
+    return db;
 }
 
-export const db = client.db(process.env.DB_NAME!);
+export { db };
