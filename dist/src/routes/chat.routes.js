@@ -1,16 +1,14 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // routes/chat.routes.ts
-const express_1 = require("express");
-const db_1 = require("../config/db");
-const verifyToken_1 = require("../middleware/verifyToken");
-const ai_1 = require("../utils/ai");
-const router = (0, express_1.Router)();
+import { Router } from "express";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
+import { groq, AI_MODEL } from "../utils/ai.js";
+const router = Router();
 const SYSTEM_PROMPT = `You are the AI Career Coach inside CareerPilot AI, a career coaching platform.
 You help users with career advice, skill development, job readiness, resume tips, and learning direction.
 Keep responses concise, encouraging, and actionable. If asked something unrelated to careers/learning, gently redirect back to career topics.`;
 // POST /message - send message, get AI reply, auto-save
-router.post("/message", verifyToken_1.verifyToken, async (req, res) => {
+router.post("/message", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         const { message } = req.body;
@@ -20,14 +18,14 @@ router.post("/message", verifyToken_1.verifyToken, async (req, res) => {
                 message: "Message is required.",
             });
         }
-        const chatCollection = db_1.db.collection("chatHistory");
+        const chatCollection = db.collection("chatHistory");
         // Find or create the user's chat thread
         let chatDoc = await chatCollection.findOne({ userEmail: activeUser.email });
         const previousMessages = chatDoc?.messages ?? [];
         // Build conversation context for Groq (last 10 messages max)
         const recentHistory = previousMessages.slice(-10);
-        const completion = await ai_1.groq.chat.completions.create({
-            model: ai_1.AI_MODEL,
+        const completion = await groq.chat.completions.create({
+            model: AI_MODEL,
             messages: [
                 { role: "system", content: SYSTEM_PROMPT },
                 ...recentHistory.map((m) => ({
@@ -78,10 +76,10 @@ router.post("/message", verifyToken_1.verifyToken, async (req, res) => {
     }
 });
 // GET /history - get full conversation history
-router.get("/history", verifyToken_1.verifyToken, async (req, res) => {
+router.get("/history", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
-        const chatDoc = await db_1.db
+        const chatDoc = await db
             .collection("chatHistory")
             .findOne({ userEmail: activeUser.email });
         return res.status(200).json({
@@ -98,10 +96,10 @@ router.get("/history", verifyToken_1.verifyToken, async (req, res) => {
     }
 });
 // DELETE /history - clear conversation
-router.delete("/history", verifyToken_1.verifyToken, async (req, res) => {
+router.delete("/history", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
-        await db_1.db.collection("chatHistory").deleteOne({ userEmail: activeUser.email });
+        await db.collection("chatHistory").deleteOne({ userEmail: activeUser.email });
         return res.status(200).json({
             success: true,
             message: "Chat history cleared.",
@@ -115,4 +113,4 @@ router.delete("/history", verifyToken_1.verifyToken, async (req, res) => {
         });
     }
 });
-exports.default = router;
+export default router;

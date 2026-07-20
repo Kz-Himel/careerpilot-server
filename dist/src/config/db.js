@@ -1,15 +1,19 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.db = void 0;
-exports.connectDB = connectDB;
-const mongodb_1 = require("mongodb");
-const client = new mongodb_1.MongoClient(process.env.MONGODB_URI);
-let db;
-async function connectDB() {
-    if (!db) {
-        await client.connect();
-        exports.db = db = client.db(process.env.DB_NAME);
-        console.log("MongoDB Connected");
-    }
-    return db;
+import { MongoClient } from "mongodb";
+const client = new MongoClient(process.env.MONGODB_URI);
+let database = null;
+export async function connectDB() {
+    if (database)
+        return database;
+    await client.connect();
+    database = client.db(process.env.DB_NAME);
+    console.log("MongoDB Connected");
+    return database;
 }
+export const db = new Proxy({}, {
+    get(_target, prop) {
+        if (!database) {
+            throw new Error("Database not connected yet");
+        }
+        return database[prop];
+    }
+});

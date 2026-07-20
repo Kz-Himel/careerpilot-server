@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyToken = void 0;
-const jose_cjs_1 = require("jose-cjs");
-const jwks_js_1 = require("../utils/jwks.js");
-const verifyToken = async (req, res, next) => {
+import { jwtVerify } from "jose-cjs";
+import { JWKS } from "../utils/jwks.js";
+export const verifyToken = async (req, res, next) => {
     try {
         const authorization = req.headers.authorization;
         if (!authorization?.startsWith("Bearer ")) {
@@ -21,7 +18,7 @@ const verifyToken = async (req, res, next) => {
             });
             return;
         }
-        const { payload } = await (0, jose_cjs_1.jwtVerify)(token, jwks_js_1.JWKS);
+        const { payload } = await jwtVerify(token, JWKS);
         req.user = payload;
         next();
     }
@@ -33,4 +30,3 @@ const verifyToken = async (req, res, next) => {
         });
     }
 };
-exports.verifyToken = verifyToken;

@@ -1,34 +1,32 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // routes/savedGoals.routes.ts
-const express_1 = require("express");
-const mongodb_1 = require("mongodb");
-const db_1 = require("../config/db");
-const verifyToken_1 = require("../middleware/verifyToken");
-const router = (0, express_1.Router)();
+import { Router } from "express";
+import { ObjectId } from "mongodb";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
+const router = Router();
 // POST /save/:goalId - save someone's career guide
-router.post("/save/:goalId", verifyToken_1.verifyToken, async (req, res) => {
+router.post("/save/:goalId", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         const goalId = req.params.goalId;
         if (!activeUser?.email) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
-        if (!mongodb_1.ObjectId.isValid(goalId)) {
+        if (!ObjectId.isValid(goalId)) {
             return res.status(400).json({ success: false, message: "Invalid Guide ID" });
         }
-        const originalGuide = await db_1.db.collection("careerGoals").findOne({ _id: new mongodb_1.ObjectId(goalId) });
+        const originalGuide = await db.collection("careerGoals").findOne({ _id: new ObjectId(goalId) });
         if (!originalGuide) {
             return res.status(404).json({ success: false, message: "Career guide not found" });
         }
-        const alreadySaved = await db_1.db.collection("savedGoals").findOne({
+        const alreadySaved = await db.collection("savedGoals").findOne({
             userEmail: activeUser.email,
             originalGoalId: goalId,
         });
         if (alreadySaved) {
             return res.status(409).json({ success: false, message: "Already saved to your list." });
         }
-        const result = await db_1.db.collection("savedGoals").insertOne({
+        const result = await db.collection("savedGoals").insertOne({
             userEmail: activeUser.email,
             originalGoalId: goalId,
             title: originalGuide.title,
@@ -50,13 +48,13 @@ router.post("/save/:goalId", verifyToken_1.verifyToken, async (req, res) => {
     }
 });
 // GET /saved - list current user's saved guides
-router.get("/saved", verifyToken_1.verifyToken, async (req, res) => {
+router.get("/saved", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         if (!activeUser?.email) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
-        const saved = await db_1.db
+        const saved = await db
             .collection("savedGoals")
             .find({ userEmail: activeUser.email })
             .sort({ savedAt: -1 })
@@ -69,18 +67,18 @@ router.get("/saved", verifyToken_1.verifyToken, async (req, res) => {
     }
 });
 // DELETE /saved/:id - unsave (remove from saved list)
-router.delete("/saved/:id", verifyToken_1.verifyToken, async (req, res) => {
+router.delete("/saved/:id", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         const id = req.params.id;
         if (!activeUser?.email) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
-        if (!mongodb_1.ObjectId.isValid(id)) {
+        if (!ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: "Invalid ID" });
         }
-        const result = await db_1.db.collection("savedGoals").deleteOne({
-            _id: new mongodb_1.ObjectId(id),
+        const result = await db.collection("savedGoals").deleteOne({
+            _id: new ObjectId(id),
             userEmail: activeUser.email,
         });
         if (result.deletedCount === 0) {
@@ -93,4 +91,4 @@ router.delete("/saved/:id", verifyToken_1.verifyToken, async (req, res) => {
         return res.status(500).json({ success: false, message: "Failed to remove saved guide." });
     }
 });
-exports.default = router;
+export default router;

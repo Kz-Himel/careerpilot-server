@@ -1,8 +1,8 @@
 // routes/goal.routes.ts
 import { Router, Response, Request } from "express";
 import { ObjectId } from "mongodb";
-import { db } from "../config/db";
-import { verifyToken } from "../middleware/verifyToken";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = Router();
 

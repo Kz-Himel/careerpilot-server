@@ -1,7 +1,7 @@
 // routes/dashboard.routes.ts
 import { Router, Request, Response } from "express";
-import { db } from "../config/db";
-import { verifyToken } from "../middleware/verifyToken";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = Router();
 

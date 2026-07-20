@@ -1,43 +1,31 @@
 import { MongoClient, Db } from "mongodb";
 
-let client: MongoClient;
-let db: Db | null = null;
+const client = new MongoClient(process.env.MONGODB_URI!);
+
+let database: Db | null = null;
 
 
 export async function connectDB() {
 
-    if (db) {
-        return db;
-    }
-
-
-    const uri = process.env.MONGODB_URI;
-
-    const dbName = process.env.DB_NAME;
-
-
-    if (!uri) {
-        throw new Error("MONGODB_URI is missing");
-    }
-
-    if (!dbName) {
-        throw new Error("DB_NAME is missing");
-    }
-
-
-    client = new MongoClient(uri);
+    if (database) return database;
 
     await client.connect();
 
-
-    db = client.db(dbName);
-
+    database = client.db(process.env.DB_NAME);
 
     console.log("MongoDB Connected");
 
-
-    return db;
+    return database;
 }
 
 
-export { db };
+export const db = new Proxy({} as Db, {
+    get(_target, prop) {
+
+        if (!database) {
+            throw new Error("Database not connected yet");
+        }
+
+        return database[prop as keyof Db];
+    }
+});

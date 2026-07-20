@@ -1,9 +1,9 @@
 // routes/chat.routes.ts
 import { Router, Request, Response } from "express";
-import { db } from "../config/db";
-import { verifyToken } from "../middleware/verifyToken";
-import { groq, AI_MODEL } from "../utils/ai";
-import type { ChatHistoryDocument } from "../types/chat";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
+import { groq, AI_MODEL } from "../utils/ai.js";
+import type { ChatHistoryDocument } from "../types/chat.js";
 
 const router = Router();
 

@@ -1,12 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const db_js_1 = require("../config/db.js");
-const verifyToken_js_1 = require("../middleware/verifyToken.js");
-const router = (0, express_1.Router)();
-const goalsCollection = db_js_1.db.collection("careerGoals");
+import { Router } from "express";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
+const router = Router();
+const goalsCollection = db.collection("careerGoals");
 // Get Logged-in User Goals
-router.get("/my", verifyToken_js_1.verifyToken, async (req, res) => {
+router.get("/my", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         if (!activeUser?.email) {
@@ -38,4 +36,4 @@ router.get("/my", verifyToken_js_1.verifyToken, async (req, res) => {
         });
     }
 });
-exports.default = router;
+export default router;

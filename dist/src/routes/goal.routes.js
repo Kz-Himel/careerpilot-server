@@ -1,13 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // routes/goal.routes.ts
-const express_1 = require("express");
-const mongodb_1 = require("mongodb");
-const db_1 = require("../config/db");
-const verifyToken_1 = require("../middleware/verifyToken");
-const router = (0, express_1.Router)();
+import { Router } from "express";
+import { ObjectId } from "mongodb";
+import { db } from "../config/db.js";
+import { verifyToken } from "../middleware/verifyToken.js";
+const router = Router();
 // Create Career Guide (Protected)
-router.post("/", verifyToken_1.verifyToken, async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
     try {
         const activeUser = req.user;
         if (!activeUser?.email) {
@@ -34,7 +32,7 @@ router.post("/", verifyToken_1.verifyToken, async (req, res) => {
             createdAt: new Date(),
             updatedAt: new Date(),
         };
-        const result = await db_1.db.collection("careerGoals").insertOne(guide);
+        const result = await db.collection("careerGoals").insertOne(guide);
         return res.status(201).json({
             success: true,
             message: "Career guide created successfully.",
@@ -69,8 +67,8 @@ router.get("/", async (req, res) => {
         const pageNum = parseInt(page, 10) || 1;
         const limitNum = parseInt(limit, 10) || 8;
         const skip = (pageNum - 1) * limitNum;
-        const total = await db_1.db.collection("careerGoals").countDocuments(query);
-        const guides = await db_1.db
+        const total = await db.collection("careerGoals").countDocuments(query);
+        const guides = await db
             .collection("careerGoals")
             .find(query)
             .sort(sortQuery)
@@ -96,7 +94,7 @@ router.get("/", async (req, res) => {
 // GET /popular - top 4 guides for home page display
 router.get("/popular", async (req, res) => {
     try {
-        const guides = await db_1.db
+        const guides = await db
             .collection("careerGoals")
             .find({})
             .sort({ createdAt: -1 })
@@ -119,14 +117,14 @@ router.get("/popular", async (req, res) => {
 router.get("/:id", async (req, res) => {
     try {
         const id = req.params.id;
-        if (!mongodb_1.ObjectId.isValid(id)) {
+        if (!ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid Guide ID",
             });
         }
-        const guide = await db_1.db.collection("careerGoals").findOne({
-            _id: new mongodb_1.ObjectId(id),
+        const guide = await db.collection("careerGoals").findOne({
+            _id: new ObjectId(id),
         });
         if (!guide) {
             return res.status(404).json({
@@ -149,7 +147,7 @@ router.get("/:id", async (req, res) => {
     }
 });
 // Update Career Guide (Protected - owner only)
-router.patch("/:id", verifyToken_1.verifyToken, async (req, res) => {
+router.patch("/:id", verifyToken, async (req, res) => {
     try {
         const id = req.params.id;
         const activeUser = req.user;
@@ -159,14 +157,14 @@ router.patch("/:id", verifyToken_1.verifyToken, async (req, res) => {
                 message: "Unauthorized",
             });
         }
-        if (!mongodb_1.ObjectId.isValid(id)) {
+        if (!ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid Guide ID format.",
             });
         }
-        const guide = await db_1.db.collection("careerGoals").findOne({
-            _id: new mongodb_1.ObjectId(id),
+        const guide = await db.collection("careerGoals").findOne({
+            _id: new ObjectId(id),
         });
         if (!guide) {
             return res.status(404).json({
@@ -194,7 +192,7 @@ router.patch("/:id", verifyToken_1.verifyToken, async (req, res) => {
             updateFields.estimatedTime = estimatedTime;
         if (imageUrl !== undefined)
             updateFields.imageUrl = imageUrl;
-        const result = await db_1.db.collection("careerGoals").updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: updateFields });
+        const result = await db.collection("careerGoals").updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
         return res.status(200).json({
             success: true,
             message: "Career guide updated successfully.",
@@ -210,7 +208,7 @@ router.patch("/:id", verifyToken_1.verifyToken, async (req, res) => {
     }
 });
 // Delete Career Guide (Protected - owner only)
-router.delete("/:id", verifyToken_1.verifyToken, async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
     try {
         const id = req.params.id;
         const activeUser = req.user;
@@ -220,14 +218,14 @@ router.delete("/:id", verifyToken_1.verifyToken, async (req, res) => {
                 message: "Unauthorized",
             });
         }
-        if (!mongodb_1.ObjectId.isValid(id)) {
+        if (!ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid Guide ID format.",
             });
         }
-        const guide = await db_1.db.collection("careerGoals").findOne({
-            _id: new mongodb_1.ObjectId(id),
+        const guide = await db.collection("careerGoals").findOne({
+            _id: new ObjectId(id),
         });
         if (!guide) {
             return res.status(404).json({
@@ -241,8 +239,8 @@ router.delete("/:id", verifyToken_1.verifyToken, async (req, res) => {
                 message: "You are not allowed to delete this career guide.",
             });
         }
-        const result = await db_1.db.collection("careerGoals").deleteOne({
-            _id: new mongodb_1.ObjectId(id),
+        const result = await db.collection("careerGoals").deleteOne({
+            _id: new ObjectId(id),
         });
         return res.status(200).json({
             success: true,
@@ -258,4 +256,4 @@ router.delete("/:id", verifyToken_1.verifyToken, async (req, res) => {
         });
     }
 });
-exports.default = router;
+export default router;
