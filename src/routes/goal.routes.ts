@@ -56,7 +56,7 @@ router.post("/", verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// Get All Career Guides (Public - with search, filter, sort, pagination)
+// Get All Career Guides (Public - with search, filter, sort, pagination) 
 router.get("/", async (req: Request, res: Response) => {
   try {
     const {
