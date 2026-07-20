@@ -1,3 +1,243 @@
+// // routes/roadmap.routes.ts
+// import { Router, Request, Response } from "express";
+// import { ObjectId } from "mongodb";
+// import { db } from "../config/db.js";
+// import { verifyToken } from "../middleware/verifyToken.js";
+// import { groq, AI_MODEL } from "../utils/ai.js";
+
+// const router = Router();
+
+// const ROADMAP_SYSTEM_PROMPT = `You are an expert career roadmap generator for CareerPilot AI.
+// Generate a structured learning roadmap based on the user's input.
+// Respond ONLY in valid JSON format, no markdown, no extra text. Follow this exact schema:
+
+// {
+//   "targetRole": string,
+//   "durationMonths": number,
+//   "months": [
+//     {
+//       "monthNumber": number,
+//       "title": string,
+//       "topics": string[]
+//     }
+//   ]
+// }`;
+
+// // POST /generate - AI generates roadmap (not saved yet)
+// router.post("/generate", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const { currentRole, targetRole, currentSkills, weeklyStudyHours, experienceLevel, savedGuideId } = req.body;
+
+//     if (!targetRole || !experienceLevel) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Target role and experience level are required.",
+//       });
+//     }
+
+//     // Optional field: savedGuideId validation and database check
+//     let referenceContext = "";
+//     if (savedGuideId) {
+//       if (ObjectId.isValid(savedGuideId)) {
+//         const savedGuide = await db.collection("savedGoals").findOne({ _id: new ObjectId(savedGuideId) });
+//         if (savedGuide) {
+//           referenceContext = `\nReference guide the user saved for inspiration:
+// Role: ${savedGuide.title}
+// Required Skills: ${savedGuide.requiredSkills?.join(", ") || "None"}
+// Salary Range: ${savedGuide.salaryRange || "Not specified"}
+// Estimated Time: ${savedGuide.estimatedTime || "Not specified"}
+// Use this as helpful context but still personalize the roadmap to the user's own inputs above.`;
+//         }
+//       } else {
+//         console.warn("Invalid savedGuideId format received:", savedGuideId);
+//       }
+//     }
+
+//     const userPrompt = `Generate a career roadmap for:
+// - Current role: ${currentRole || "Not specified"}
+// - Target role: ${targetRole}
+// - Current skills: ${currentSkills?.join(", ") || "None"}
+// - Weekly study hours: ${weeklyStudyHours || 10}
+// - Experience level: ${experienceLevel}
+// ${referenceContext}
+
+// Create a 3-6 month roadmap with weekly milestones. Return ONLY the JSON object, nothing else.`;
+
+//     const completion = await groq.chat.completions.create({
+//       model: AI_MODEL,
+//       messages: [
+//         { role: "system", content: ROADMAP_SYSTEM_PROMPT },
+//         { role: "user", content: userPrompt },
+//       ],
+//       temperature: 0.6,
+//       max_tokens: 1500,
+//     });
+
+//     const rawText = completion.choices[0]?.message?.content?.trim() ?? "";
+
+//     // Strip markdown code fences if present
+//     const cleanText = rawText.replace(/```json|```/g, "").trim();
+
+//     let roadmapData;
+//     try {
+//       roadmapData = JSON.parse(cleanText);
+//     } catch (parseErr) {
+//       console.error("Roadmap JSON parse failed:", cleanText);
+//       return res.status(500).json({
+//         success: false,
+//         message: "AI returned invalid format. Please try again.",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       data: roadmapData,
+//     });
+//   } catch (error) {
+//     console.error("Roadmap Generate Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to generate roadmap.",
+//     });
+//   }
+// });
+
+// // POST / - save generated roadmap
+// router.post("/", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const activeUser = (req as any).user;
+//     const { targetRole, durationMonths, months } = req.body;
+
+//     if (!targetRole || !months) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Roadmap data is incomplete.",
+//       });
+//     }
+
+//     const result = await db.collection("roadmaps").insertOne({
+//       userEmail: activeUser.email,
+//       targetRole,
+//       durationMonths,
+//       months,
+//       progress: 0,
+//       generatedAt: new Date(),
+//     });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Roadmap saved successfully.",
+//       insertedId: result.insertedId,
+//     });
+//   } catch (error) {
+//     console.error("Save Roadmap Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to save roadmap.",
+//     });
+//   }
+// });
+
+// // GET / - list user's saved roadmaps
+// router.get("/", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const activeUser = (req as any).user;
+
+//     const roadmaps = await db
+//       .collection("roadmaps")
+//       .find({ userEmail: activeUser.email })
+//       .sort({ generatedAt: -1 })
+//       .toArray();
+
+//     return res.status(200).json({
+//       success: true,
+//       data: roadmaps,
+//     });
+//   } catch (error) {
+//     console.error("Fetch Roadmaps Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch roadmaps.",
+//     });
+//   }
+// });
+
+// // GET /:id - single roadmap detail
+// router.get("/:id", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const id = req.params.id as string;
+
+//     if (!ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid Roadmap ID",
+//       });
+//     }
+
+//     const roadmap = await db.collection("roadmaps").findOne({ _id: new ObjectId(id) });
+
+//     if (!roadmap) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Roadmap not found",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       data: roadmap,
+//     });
+//   } catch (error) {
+//     console.error("Single Roadmap Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch roadmap.",
+//     });
+//   }
+// });
+
+// // DELETE /:id - delete roadmap
+// router.delete("/:id", verifyToken, async (req: Request, res: Response) => {
+//   try {
+//     const activeUser = (req as any).user;
+//     const id = req.params.id as string;
+
+//     if (!ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid Roadmap ID",
+//       });
+//     }
+
+//     const roadmap = await db.collection("roadmaps").findOne({ _id: new ObjectId(id) });
+
+//     if (!roadmap) {
+//       return res.status(404).json({ success: false, message: "Roadmap not found." });
+//     }
+
+//     if (roadmap.userEmail !== activeUser.email) {
+//       return res.status(403).json({ success: false, message: "Not allowed to delete this roadmap." });
+//     }
+
+//     await db.collection("roadmaps").deleteOne({ _id: new ObjectId(id) });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Roadmap deleted successfully.",
+//     });
+//   } catch (error) {
+//     console.error("Delete Roadmap Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to delete roadmap.",
+//     });
+//   }
+// });
+
+// export default router;
+
+
+
 // routes/roadmap.routes.ts
 import { Router, Request, Response } from "express";
 import { ObjectId } from "mongodb";
@@ -23,10 +263,20 @@ Respond ONLY in valid JSON format, no markdown, no extra text. Follow this exact
   ]
 }`;
 
+const ALLOWED_DURATIONS = [3, 6, 12];
+
 // POST /generate - AI generates roadmap (not saved yet)
 router.post("/generate", verifyToken, async (req: Request, res: Response) => {
   try {
-    const { currentRole, targetRole, currentSkills, weeklyStudyHours, experienceLevel, savedGuideId } = req.body;
+    const {
+      currentRole,
+      targetRole,
+      currentSkills,
+      weeklyStudyHours,
+      experienceLevel,
+      savedGuideId,
+      desiredDurationMonths,
+    } = req.body;
 
     if (!targetRole || !experienceLevel) {
       return res.status(400).json({
@@ -34,6 +284,11 @@ router.post("/generate", verifyToken, async (req: Request, res: Response) => {
         message: "Target role and experience level are required.",
       });
     }
+
+    // Validate/normalize duration — default to 3 if missing or invalid
+    const duration = ALLOWED_DURATIONS.includes(Number(desiredDurationMonths))
+      ? Number(desiredDurationMonths)
+      : 3;
 
     // Optional field: savedGuideId validation and database check
     let referenceContext = "";
@@ -61,7 +316,7 @@ Use this as helpful context but still personalize the roadmap to the user's own 
 - Experience level: ${experienceLevel}
 ${referenceContext}
 
-Create a 3-6 month roadmap with weekly milestones. Return ONLY the JSON object, nothing else.`;
+Create a roadmap that spans EXACTLY ${duration} months, with one entry per month (monthNumber 1 to ${duration}), each with clear weekly-level milestones inside its topics. The "durationMonths" field in your JSON response must be exactly ${duration}. Return ONLY the JSON object, nothing else.`;
 
     const completion = await groq.chat.completions.create({
       model: AI_MODEL,
@@ -70,7 +325,7 @@ Create a 3-6 month roadmap with weekly milestones. Return ONLY the JSON object, 
         { role: "user", content: userPrompt },
       ],
       temperature: 0.6,
-      max_tokens: 1500,
+      max_tokens: duration > 6 ? 2500 : 1500,
     });
 
     const rawText = completion.choices[0]?.message?.content?.trim() ?? "";
@@ -87,6 +342,11 @@ Create a 3-6 month roadmap with weekly milestones. Return ONLY the JSON object, 
         success: false,
         message: "AI returned invalid format. Please try again.",
       });
+    }
+
+    // Safety net: enforce the requested duration even if the model drifts
+    if (typeof roadmapData?.durationMonths !== "number" || roadmapData.durationMonths !== duration) {
+      roadmapData.durationMonths = duration;
     }
 
     return res.status(200).json({
