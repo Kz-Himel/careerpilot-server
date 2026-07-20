@@ -1,6 +1,13 @@
 import express from "express";
 import cors from "cors";
 
+import goalRoutes from "./routes/goal.routes.js";
+import myGoalsRoutes from "./routes/my-goals.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
+import roadmapRoutes from "./routes/roadmap.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
+import savedGoalsRoutes from "./routes/savedGoals.routes.js";
+
 
 const app = express();
 
@@ -20,9 +27,18 @@ app.use(cors({
 app.use(express.json());
 
 
-app.get("/", (req, res) => {
-    res.send("API Running");
+app.get("/", (_req, res) => {
+    res.send("CareerPilot AI API Running 🚀");
 });
+
+
+// Production API Routes
+app.use("/goals", myGoalsRoutes);
+app.use("/goals", goalRoutes);
+app.use("/chat", chatRoutes);
+app.use("/roadmaps", roadmapRoutes);
+app.use("/dashboard", dashboardRoutes);
+app.use("/saved-goals", savedGoalsRoutes);
 
 
 export default app;
