@@ -29,7 +29,7 @@ if (!globalWithMongo._mongoClient) {
     socketTimeoutMS: 30000,
   });
   
-  globalWithMongo._mongoDb = globalWithMongo._mongoClient.db(process.env.DATABASE_NAME!);
+  globalWithMongo._mongoDb = globalWithMongo._mongoClient.db(process.env.DB_NAME!);
 }
 
 // 🌟 আপনার অন্য সব ফাইলের ইম্পোর্ট ঠিক রাখার জন্য সরাসরি `db` অবজেক্ট এক্সপোর্ট
